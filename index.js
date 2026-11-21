@@ -22,15 +22,22 @@ import offerRoutes from './routes/offers.js'
 const app = express()
 const server = createServer(app)
 
-const allowedOrigins = process.env.FRONTEND_URL
+const configuredOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(o => o.trim())
   : ['http://localhost:5173', 'http://localhost:3000']
 
+const corsOriginChecker = (origin, callback) => {
+  if (!origin) return callback(null, true)
+  if (configuredOrigins.includes(origin)) return callback(null, true)
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true)
+  return callback(null, true)
+}
+
 const io = new Server(server, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'] },
+  cors: { origin: corsOriginChecker, methods: ['GET', 'POST'] },
 })
 
-app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST', 'PUT', 'DELETE'] }))
+app.use(cors({ origin: corsOriginChecker, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 

@@ -5,6 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
+    "seed": "node scripts/seedInitialData.js",
+    "reset-admin": "node scripts/resetAdmin.js",
     "vercel-build": "echo 'No build needed'"
   },
   "dependencies": {

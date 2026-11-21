@@ -14,11 +14,14 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
       return res.status(400).json({ error: 'Full name, email and password required' })
     }
 
-    const existing = await User.findOne({ email })
+    const cleanEmail = String(email).trim().toLowerCase()
+    const existing = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') })
     if (existing) return res.status(400).json({ error: 'Email already registered' })
 
     const adminExists = await User.findOne({ role: 'admin', isDeleted: false })
-    const role = adminExists ? 'customer' : 'admin'
+    // If no admin exists yet, or if it matches the designated owner email, assign admin role
+    const isOwnerEmail = cleanEmail === 'printopia@gmail.com' || cleanEmail === 'printopiapk905@gmail.com'
+    const role = (!adminExists || isOwnerEmail) ? 'admin' : 'customer'
 
     const hashedPassword = await bcrypt.hash(password, 10)
     const uid = `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
@@ -33,10 +36,10 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
 
     const user = await User.create({
       uid,
-      fullName,
-      email,
+      fullName: String(fullName).trim(),
+      email: cleanEmail,
       password: hashedPassword,
-      phone: phone || '',
+      phone: phone ? String(phone).trim() : '',
       avatar,
       role,
       status: 'active',
@@ -57,12 +60,13 @@ router.post('/login', async (req, res) => {
     const { email, password } = req.body
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
 
-    const user = await User.findOne({ email, isDeleted: false })
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' })
+    const cleanEmail = String(email).trim().toLowerCase()
+    const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i'), isDeleted: false })
+    if (!user) return res.status(401).json({ error: 'Invalid credentials. User with this email does not exist.' })
     if (user.status === 'blocked') return res.status(403).json({ error: 'Account blocked. Contact admin.' })
 
     const match = await bcrypt.compare(password, user.password)
-    if (!match) return res.status(401).json({ error: 'Invalid credentials' })
+    if (!match) return res.status(401).json({ error: 'Invalid credentials. Incorrect password.' })
 
     const token = signToken(user.uid, user.role)
     res.json({

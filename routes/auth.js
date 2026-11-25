@@ -16,7 +16,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
 
     const cleanEmail = String(email).trim().toLowerCase()
     const existing = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') })
-    if (existing) return res.status(400).json({ error: 'Email already registered' })
+    if (existing) return res.status(400).json({ error: 'Email already registered. Please login instead.' })
 
     const adminExists = await User.findOne({ role: 'admin', isDeleted: false })
     // If no admin exists yet, or if it matches the designated owner email, assign admin role
